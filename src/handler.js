@@ -4,31 +4,38 @@ const books = require('./books');
 const addBookHandler = (request, h) => {
   const { name, year, author, summary, publisher, pageCount, readPage, reading } = request.payload;
 
+  const id = nanoid(16);
+  const insertedAt = new Date().toISOString();
+  const updatedAt = insertedAt;
+  const finished = (pageCount === readPage);
+
   if (name === undefined) {
     return h.response({
       status: 'fail',
-      'message': 'Gagal menambahkan buku. Mohon isi nama buku'
+      message: 'Gagal menambahkan buku. Mohon isi nama buku'
     }).code(400);
   }
 
   if (readPage > pageCount) {
     return h.response({
       status: 'fail',
-      'message': 'Gagal menambahkan buku. readPage tidak boleh lebih besar dari pageCount'
+      message: 'Gagal menambahkan buku. readPage tidak boleh lebih besar dari pageCount'
     }).code(400);
   }
 
-  const id = nanoid(16);
-  const insertedAt = new Date().toISOString();
-  const updatedAt = insertedAt;
-  let finished = false;
-
-  if (pageCount === readPage) {
-    finished = true;
-  }
-
   const newBook = {
-    id, name, year, author, summary, publisher, pageCount, readPage, finished, reading, insertedAt, updatedAt
+    id,
+    name,
+    year,
+    author,
+    summary,
+    publisher,
+    pageCount,
+    readPage,
+    finished,
+    reading,
+    insertedAt,
+    updatedAt
   };
 
   books.push(newBook);
@@ -54,74 +61,29 @@ const addBookHandler = (request, h) => {
 const getAllBooksHandler = (request, h) => {
   const { name, reading, finished } = request.query;
 
+  let filteredBooks = books;
+
   if (name !== undefined) {
-    const filteredBooks = books
-      .filter((book) => book.name.toLowerCase() === name.toLowerCase())
-      .map(({ id, name, publisher }) => ({ id, name, publisher }));
-
-    return h.response({
-      status: 'success',
-      data: {
-        books: filteredBooks,
-      }
-    }).code(200);
+    filteredBooks = filteredBooks.filter((book) => book.name.toLowerCase().includes(name.toLowerCase()));
   }
 
-  if (reading === 1) {
-    const filteredBooks = books
-      .filter((book) => book.reading === true)
-      .map(({ id, name, publisher }) => ({ id, name, publisher }));
-
-    return h.response({
-      status: 'success',
-      data: {
-        books: filteredBooks,
-      }
-    }).code(200);
-  } else if (reading === 0) {
-    const filteredBooks = books
-      .filter((book) => book.reading === false)
-      .map(({ id, name, publisher }) => ({ id, name, publisher }));
-
-    return h.response({
-      status: 'success',
-      data: {
-        books: filteredBooks,
-      }
-    }).code(200);
+  if (reading !== undefined) {
+    filteredBooks = filteredBooks.filter((book) => book.reading === !!Number(reading));
   }
 
-  if (finished === 1) {
-    const filteredBooks = books
-      .filter((book) => book.finished === true)
-      .map(({ id, name, publisher }) => ({ id, name, publisher }));
-
-    return h.response({
-      status: 'success',
-      data: {
-        books: filteredBooks,
-      }
-    }).code(200);
-  } else if (finished === 0) {
-    const filteredBooks = books
-      .filter((book) => book.reading === false)
-      .map(({ id, name, publisher }) => ({ id, name, publisher }));
-
-    return h.response({
-      status: 'success',
-      data: {
-        books: filteredBooks,
-      }
-    }).code(200);
+  if (finished !== undefined) {
+    filteredBooks = filteredBooks.filter((book) => book.finished === !!Number(finished));
   }
-
-  // const formattedBooks = books.map(({ id, name, publisher }) => ({ id, name, publisher }));
 
   return h.response({
     status: 'success',
     data: {
-      books: books.map(({ id, name, publisher }) => ({ id, name, publisher }))
-    }
+      books: filteredBooks.map((book) => ({
+        id: book.id,
+        name: book.name,
+        publisher: book.publisher,
+      })),
+    },
   }).code(200);
 };
 
